@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>QR Compare App</title>
+  <title>QRコード照合アプリ</title>
 
   <script src="https://unpkg.com/html5-qrcode"></script>
 
@@ -12,99 +12,180 @@
       font-family: sans-serif;
       text-align: center;
       padding: 20px;
+      background: #f5f5f5;
+    }
+
+    h1 {
+      margin-bottom: 10px;
     }
 
     #reader {
       width: 300px;
+      margin: 20px auto;
+    }
+
+    .box {
+      background: white;
+      padding: 20px;
+      border-radius: 10px;
+      max-width: 500px;
       margin: auto;
     }
 
-    .result {
-      margin-top: 20px;
-      font-size: 24px;
-      font-weight: bold;
+    button {
+      padding: 12px 24px;
+      font-size: 16px;
+      margin: 10px;
+      cursor: pointer;
     }
 
     ul {
       text-align: left;
       display: inline-block;
+      margin-top: 20px;
     }
 
-    button {
+    li {
+      margin-bottom: 10px;
+      word-break: break-all;
+    }
+
+    #result {
+      font-size: 24px;
+      font-weight: bold;
       margin-top: 20px;
-      padding: 10px 20px;
-      font-size: 16px;
+    }
+
+    .success {
+      color: green;
+    }
+
+    .error {
+      color: red;
     }
   </style>
 </head>
 
 <body>
 
-  <h1>QRコード比較アプリ</h1>
+  <div class="box">
 
-  <p>4つのQRコードを順番に読み込んでください</p>
+    <h1>QRコード照合アプリ</h1>
 
-  <div id="reader"></div>
+    <p>
+      「読み取り開始」を押して、<br>
+      QRコードを1つずつ読み込んでください。
+    </p>
 
-  <h2>読み取り結果</h2>
+    <h2 id="count">現在：0 / 4</h2>
 
-  <ul id="list"></ul>
+    <div id="reader"></div>
 
-  <div class="result" id="result"></div>
+    <button onclick="startScan()">
+      読み取り開始
+    </button>
 
-  <button onclick="resetApp()">リセット</button>
+    <button onclick="resetApp()">
+      リセット
+    </button>
+
+    <h2>読み取り結果</h2>
+
+    <ul id="list"></ul>
+
+    <div id="result"></div>
+
+  </div>
 
   <script>
 
     let scanned = [];
+    let scanner;
 
     const list = document.getElementById("list");
     const result = document.getElementById("result");
+    const count = document.getElementById("count");
 
     function updateUI() {
+
+      count.textContent = `現在：${scanned.length} / 4`;
 
       list.innerHTML = "";
 
       scanned.forEach((code, index) => {
+
         const li = document.createElement("li");
-        li.textContent = `QR${index + 1}: ${code}`;
+
+        li.textContent =
+          `QRコード ${index + 1}： ${code}`;
+
         list.appendChild(li);
       });
 
       if (scanned.length === 4) {
 
-        const allSame = scanned.every(v => v === scanned[0]);
+        const allSame =
+          scanned.every(v => v === scanned[0]);
 
         if (allSame) {
-          result.textContent = "✅ 全て一致";
+
+          result.textContent =
+            "✅ 4つとも一致しています";
+
+          result.className = "success";
+
         } else {
-          result.textContent = "❌ 不一致あり";
+
+          result.textContent =
+            "❌ 一致していません";
+
+          result.className = "error";
         }
       }
     }
 
-    function onScanSuccess(decodedText) {
+    async function startScan() {
 
-      if (scanned.length >= 4) return;
+      if (scanned.length >= 4) {
+        alert("4件読み取り済みです");
+        return;
+      }
 
-      scanned.push(decodedText);
+      scanner = new Html5Qrcode("reader");
 
-      updateUI();
+      try {
 
-      if (scanned.length === 4) {
-        html5QrcodeScanner.clear();
+        await scanner.start(
+          { facingMode: "environment" },
+          {
+            fps: 10,
+            qrbox: 250
+          },
+          async (decodedText) => {
+
+            scanned.push(decodedText);
+
+            updateUI();
+
+            await scanner.stop();
+
+            document.getElementById("reader").innerHTML =
+              "";
+
+            alert(
+              `QRコード ${scanned.length} 件目を読み取りました`
+            );
+          }
+        );
+
+      } catch (err) {
+
+        alert("カメラを起動できませんでした");
       }
     }
 
-    const html5QrcodeScanner = new Html5QrcodeScanner(
-      "reader",
-      { fps: 10, qrbox: 250 },
-      false
-    );
-
-    html5QrcodeScanner.render(onScanSuccess);
-
     function resetApp() {
+
       location.reload();
     }
 
