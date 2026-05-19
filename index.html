@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>QR Compare App</title>
+
+  <script src="https://unpkg.com/html5-qrcode"></script>
+
+  <style>
+    body {
+      font-family: sans-serif;
+      text-align: center;
+      padding: 20px;
+    }
+
+    #reader {
+      width: 300px;
+      margin: auto;
+    }
+
+    .result {
+      margin-top: 20px;
+      font-size: 24px;
+      font-weight: bold;
+    }
+
+    ul {
+      text-align: left;
+      display: inline-block;
+    }
+
+    button {
+      margin-top: 20px;
+      padding: 10px 20px;
+      font-size: 16px;
+    }
+  </style>
+</head>
+
+<body>
+
+  <h1>QRコード比較アプリ</h1>
+
+  <p>4つのQRコードを順番に読み込んでください</p>
+
+  <div id="reader"></div>
+
+  <h2>読み取り結果</h2>
+
+  <ul id="list"></ul>
+
+  <div class="result" id="result"></div>
+
+  <button onclick="resetApp()">リセット</button>
+
+  <script>
+
+    let scanned = [];
+
+    const list = document.getElementById("list");
+    const result = document.getElementById("result");
+
+    function updateUI() {
+
+      list.innerHTML = "";
+
+      scanned.forEach((code, index) => {
+        const li = document.createElement("li");
+        li.textContent = `QR${index + 1}: ${code}`;
+        list.appendChild(li);
+      });
+
+      if (scanned.length === 4) {
+
+        const allSame = scanned.every(v => v === scanned[0]);
+
+        if (allSame) {
+          result.textContent = "✅ 全て一致";
+        } else {
+          result.textContent = "❌ 不一致あり";
+        }
+      }
+    }
+
+    function onScanSuccess(decodedText) {
+
+      if (scanned.length >= 4) return;
+
+      scanned.push(decodedText);
+
+      updateUI();
+
+      if (scanned.length === 4) {
+        html5QrcodeScanner.clear();
+      }
+    }
+
+    const html5QrcodeScanner = new Html5QrcodeScanner(
+      "reader",
+      { fps: 10, qrbox: 250 },
+      false
+    );
+
+    html5QrcodeScanner.render(onScanSuccess);
+
+    function resetApp() {
+      location.reload();
+    }
+
+  </script>
+
+</body>
+</html>
