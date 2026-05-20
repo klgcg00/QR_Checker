@@ -38,11 +38,13 @@
 
       overflow: hidden;
 
-      background: #f5f5f5;
+      background: #ffffff;
 
       font-family: sans-serif;
 
       text-align: center;
+
+      transition: background 0.3s;
     }
 
     body {
@@ -61,9 +63,58 @@
       overflow: hidden;
     }
 
+    .top-bar {
+
+      display: flex;
+
+      justify-content: space-between;
+
+      align-items: center;
+
+      margin-bottom: 6px;
+    }
+
+    #result {
+
+      font-size: 20px;
+
+      font-weight: bold;
+
+      min-height: 28px;
+
+      text-align: left;
+
+      flex: 1;
+    }
+
+    .success {
+      color: #008a00;
+    }
+
+    .error {
+      color: #d6006b;
+    }
+
+    .reset-btn {
+
+      background: #999;
+
+      color: white;
+
+      border: none;
+
+      border-radius: 8px;
+
+      padding: 10px 14px;
+
+      font-size: 14px;
+
+      cursor: pointer;
+    }
+
     h1 {
 
-      margin: 4px 0;
+      margin: 2px 0;
 
       font-size: 22px;
     }
@@ -121,11 +172,6 @@
       color: white;
     }
 
-    .reset-btn {
-      background: #999;
-      color: white;
-    }
-
     #status {
 
       margin-top: 6px;
@@ -150,7 +196,7 @@
 
     li {
 
-      background: white;
+      background: rgba(255,255,255,0.9);
 
       margin-bottom: 4px;
 
@@ -163,23 +209,6 @@
       word-break: break-all;
     }
 
-    #result {
-
-      font-size: 22px;
-
-      font-weight: bold;
-
-      margin-top: 6px;
-    }
-
-    .success {
-      color: green;
-    }
-
-    .error {
-      color: red;
-    }
-
   </style>
 
 </head>
@@ -187,6 +216,20 @@
 <body>
 
   <div class="container">
+
+    <div class="top-bar">
+
+      <div id="result"></div>
+
+      <button
+        class="reset-btn"
+        onclick="resetApp()">
+
+        リセット
+
+      </button>
+
+    </div>
 
     <h1>QRコード照合</h1>
 
@@ -211,14 +254,6 @@
 
       </button>
 
-      <button
-        class="reset-btn"
-        onclick="resetApp()">
-
-        リセット
-
-      </button>
-
     </div>
 
     <div id="status">
@@ -226,8 +261,6 @@
     </div>
 
     <ul id="list"></ul>
-
-    <div id="result"></div>
 
   </div>
 
@@ -247,6 +280,42 @@
 
     const status =
       document.getElementById("status");
+
+    function playBeep() {
+
+      const audioContext =
+        new (
+          window.AudioContext ||
+          window.webkitAudioContext
+        )();
+
+      const oscillator =
+        audioContext.createOscillator();
+
+      const gainNode =
+        audioContext.createGain();
+
+      oscillator.connect(gainNode);
+
+      gainNode.connect(
+        audioContext.destination
+      );
+
+      oscillator.type = "sine";
+
+      oscillator.frequency.value = 1000;
+
+      oscillator.start();
+
+      gainNode.gain.exponentialRampToValueAtTime(
+        0.00001,
+        audioContext.currentTime + 0.15
+      );
+
+      oscillator.stop(
+        audioContext.currentTime + 0.15
+      );
+    }
 
     function updateUI() {
 
@@ -274,18 +343,24 @@
         if (allSame) {
 
           result.textContent =
-            "✅ 4つとも一致";
+            "✅ 一致";
 
           result.className =
             "success";
 
+          document.body.style.background =
+            "#dff6dd";
+
         } else {
 
           result.textContent =
-            "❌ 不一致あり";
+            "❌ 不一致";
 
           result.className =
             "error";
+
+          document.body.style.background =
+            "#ffddee";
         }
       }
     }
@@ -315,6 +390,8 @@
 
       updateUI();
 
+      playBeep();
+
       status.textContent =
         `QRコード ${scanned.length} 件目を読み取りました`;
 
@@ -338,7 +415,22 @@
 
     function resetApp() {
 
-      location.reload();
+      scanned = [];
+
+      canScan = false;
+
+      result.textContent = "";
+
+      result.className = "";
+
+      list.innerHTML = "";
+
+      count.textContent = "0 / 4";
+
+      status.textContent = "待機中";
+
+      document.body.style.background =
+        "#ffffff";
     }
 
   </script>
