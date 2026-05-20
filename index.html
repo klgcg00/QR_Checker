@@ -270,6 +270,25 @@
     const status =
       document.getElementById("status");
 
+    async function requestCameraPermission() {
+
+      try {
+
+        const stream =
+          await navigator.mediaDevices.getUserMedia({
+            video: true
+          });
+
+        stream.getTracks().forEach(track => {
+          track.stop();
+        });
+
+      } catch (error) {
+
+        alert("カメラの許可が必要です");
+      }
+    }
+
     function playBeep() {
 
       const audioContext =
@@ -402,7 +421,7 @@
       onScanSuccess
     );
 
-    function resetApp() {
+    async function resetApp() {
 
       scanned = [];
 
@@ -420,7 +439,11 @@
 
       document.body.style.background =
         "#ffffff";
+
+      await requestCameraPermission();
     }
+
+    requestCameraPermission();
 
   </script>
 
