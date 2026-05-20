@@ -257,7 +257,7 @@
 
     let scanned = [];
     let canScan = false;
-    let html5QrCodeScanner;
+    let html5QrCodeScanner = null;
 
     const list =
       document.getElementById("list");
@@ -270,47 +270,6 @@
 
     const status =
       document.getElementById("status");
-
-    function startCamera() {
-
-      document.getElementById("reader").innerHTML = "";
-
-      html5QrCodeScanner =
-        new Html5QrcodeScanner(
-          "reader",
-          {
-            fps: 10,
-            qrbox: 220,
-            aspectRatio: 1
-          },
-          false
-        );
-
-      html5QrCodeScanner.render(
-        onScanSuccess
-      );
-    }
-
-    async function requestCameraPermission() {
-
-      try {
-
-        const stream =
-          await navigator.mediaDevices.getUserMedia({
-            video: true
-          });
-
-        stream.getTracks().forEach(track => {
-          track.stop();
-        });
-
-        startCamera();
-
-      } catch (error) {
-
-        alert("カメラの許可が必要です");
-      }
-    }
 
     function playBeep() {
 
@@ -429,6 +388,26 @@
       navigator.vibrate?.(200);
     }
 
+    function startCamera() {
+
+      document.getElementById("reader").innerHTML = "";
+
+      html5QrCodeScanner =
+        new Html5QrcodeScanner(
+          "reader",
+          {
+            fps: 10,
+            qrbox: 220,
+            aspectRatio: 1
+          },
+          false
+        );
+
+      html5QrCodeScanner.render(
+        onScanSuccess
+      );
+    }
+
     async function resetApp() {
 
       scanned = [];
@@ -448,10 +427,17 @@
       document.body.style.background =
         "#ffffff";
 
-      await requestCameraPermission();
+      if (html5QrCodeScanner) {
+
+        try {
+          await html5QrCodeScanner.clear();
+        } catch (e) {}
+      }
+
+      startCamera();
     }
 
-    requestCameraPermission();
+    startCamera();
 
   </script>
 
