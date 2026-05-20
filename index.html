@@ -257,6 +257,7 @@
 
     let scanned = [];
     let canScan = false;
+    let html5QrCodeScanner;
 
     const list =
       document.getElementById("list");
@@ -270,6 +271,26 @@
     const status =
       document.getElementById("status");
 
+    function startCamera() {
+
+      document.getElementById("reader").innerHTML = "";
+
+      html5QrCodeScanner =
+        new Html5QrcodeScanner(
+          "reader",
+          {
+            fps: 10,
+            qrbox: 220,
+            aspectRatio: 1
+          },
+          false
+        );
+
+      html5QrCodeScanner.render(
+        onScanSuccess
+      );
+    }
+
     async function requestCameraPermission() {
 
       try {
@@ -282,6 +303,8 @@
         stream.getTracks().forEach(track => {
           track.stop();
         });
+
+        startCamera();
 
       } catch (error) {
 
@@ -405,21 +428,6 @@
 
       navigator.vibrate?.(200);
     }
-
-    const html5QrCodeScanner =
-      new Html5QrcodeScanner(
-        "reader",
-        {
-          fps: 10,
-          qrbox: 220,
-          aspectRatio: 1
-        },
-        false
-      );
-
-    html5QrCodeScanner.render(
-      onScanSuccess
-    );
 
     async function resetApp() {
 
