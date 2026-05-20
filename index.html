@@ -1,275 +1,145 @@
-<!DOCTYPE html>
-<html lang="ja">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport"
-        content="width=device-width, initial-scale=1.0, user-scalable=no">
-
-  <title>QRコード照合アプリ</title>
-
-  <script src="https://unpkg.com/html5-qrcode"></script>
-
-  <style>
-
-    * {
-      box-sizing: border-box;
-    }
-
-    body {
-      margin: 0;
-      background: #f5f5f5;
-      font-family: sans-serif;
-      text-align: center;
-      overflow: hidden;
-    }
-
-    .container {
-      height: 100vh;
-      display: flex;
-      flex-direction: column;
-      padding: 10px;
-    }
-
-    h1 {
-      margin: 5px 0;
-      font-size: 24px;
-    }
-
-    p {
-      margin: 5px 0 10px;
-      font-size: 14px;
-    }
-
-    #count {
-      margin: 5px 0;
-      font-size: 22px;
-    }
-
-    #reader {
-      width: 100%;
-      max-width: 320px;
-      margin: 0 auto;
-      flex-shrink: 0;
-    }
-
-    .buttons {
-      margin-top: 10px;
-    }
-
-    button {
-      padding: 12px 20px;
-      font-size: 16px;
-      margin: 5px;
-      border: none;
-      border-radius: 8px;
-      cursor: pointer;
-    }
-
-    .scan-btn {
-      background: #007aff;
-      color: white;
-    }
+<style>
 
-    .reset-btn {
-      background: #999;
-      color: white;
-    }
+* {
+  box-sizing: border-box;
+}
 
-    #status {
-      margin-top: 10px;
-      font-size: 18px;
-      font-weight: bold;
-    }
+html,
+body {
+  margin: 0;
+  padding: 0;
 
-    ul {
-      list-style: none;
-      padding: 0;
-      margin: 10px 0 0;
-      overflow-y: auto;
-      flex: 1;
-    }
+  width: 100%;
+  height: 100dvh;
 
-    li {
-      background: white;
-      margin-bottom: 6px;
-      padding: 8px;
-      border-radius: 8px;
-      font-size: 14px;
-      word-break: break-all;
-    }
+  overflow: hidden;
 
-    #result {
-      font-size: 24px;
-      font-weight: bold;
-      margin-top: 10px;
-    }
+  background: #f5f5f5;
+  font-family: sans-serif;
+  text-align: center;
+}
 
-    .success {
-      color: green;
-    }
+body {
+  touch-action: manipulation;
+}
 
-    .error {
-      color: red;
-    }
+.container {
 
-  </style>
-</head>
+  height: 100dvh;
 
-<body>
+  display: flex;
+  flex-direction: column;
 
-  <div class="container">
+  padding: 8px;
 
-    <h1>QRコード照合</h1>
+  overflow: hidden;
+}
 
-    <p>
-      QRコードをカメラに映してから<br>
-      「読み取る」を押してください
-    </p>
+h1 {
+  margin: 4px 0;
+  font-size: 22px;
+}
 
-    <h2 id="count">0 / 4</h2>
+p {
+  margin: 2px 0 6px;
+  font-size: 13px;
+  line-height: 1.3;
+}
 
-    <div id="reader"></div>
+#count {
+  margin: 4px 0;
+  font-size: 20px;
+}
 
-    <div class="buttons">
+#reader {
 
-      <button
-        class="scan-btn"
-        onclick="enableScan()">
+  width: 100%;
+  max-width: 280px;
 
-        読み取る
+  margin: 0 auto;
 
-      </button>
+  flex-shrink: 0;
 
-      <button
-        class="reset-btn"
-        onclick="resetApp()">
+  overflow: hidden;
 
-        リセット
+  border-radius: 12px;
+}
 
-      </button>
+.buttons {
+  margin-top: 6px;
+}
 
-    </div>
+button {
 
-    <div id="status">
-      待機中
-    </div>
+  padding: 10px 16px;
 
-    <ul id="list"></ul>
+  font-size: 15px;
 
-    <div id="result"></div>
+  margin: 4px;
 
-  </div>
+  border: none;
+  border-radius: 8px;
 
-  <script>
+  cursor: pointer;
+}
 
-    let scanned = [];
-    let canScan = false;
+.scan-btn {
+  background: #007aff;
+  color: white;
+}
 
-    const list =
-      document.getElementById("list");
+.reset-btn {
+  background: #999;
+  color: white;
+}
 
-    const result =
-      document.getElementById("result");
+#status {
+  margin-top: 6px;
+  font-size: 16px;
+  font-weight: bold;
+}
 
-    const count =
-      document.getElementById("count");
+ul {
 
-    const status =
-      document.getElementById("status");
+  list-style: none;
 
-    function updateUI() {
+  padding: 0;
+  margin: 6px 0 0;
 
-      count.textContent =
-        `${scanned.length} / 4`;
+  flex: 1;
 
-      list.innerHTML = "";
+  overflow: hidden;
+}
 
-      scanned.forEach((code, index) => {
+li {
 
-        const li =
-          document.createElement("li");
+  background: white;
 
-        li.textContent =
-          `QRコード ${index + 1}\n${code}`;
+  margin-bottom: 4px;
 
-        list.appendChild(li);
-      });
+  padding: 6px;
 
-      if (scanned.length === 4) {
+  border-radius: 8px;
 
-        const allSame =
-          scanned.every(v => v === scanned[0]);
+  font-size: 12px;
 
-        if (allSame) {
+  word-break: break-all;
+}
 
-          result.textContent =
-            "✅ 4つとも一致";
+#result {
 
-          result.className =
-            "success";
+  font-size: 22px;
+  font-weight: bold;
 
-        } else {
+  margin-top: 6px;
+}
 
-          result.textContent =
-            "❌ 不一致あり";
+.success {
+  color: green;
+}
 
-          result.className =
-            "error";
-        }
-      }
-    }
+.error {
+  color: red;
+}
 
-    function enableScan() {
-
-      if (scanned.length >= 4) {
-
-        alert("4件読み取り済みです");
-        return;
-      }
-
-      canScan = true;
-
-      status.textContent =
-        "読み取り待機中...";
-    }
-
-    function onScanSuccess(decodedText) {
-
-      if (!canScan) return;
-
-      canScan = false;
-
-      scanned.push(decodedText);
-
-      updateUI();
-
-      status.textContent =
-        `QRコード ${scanned.length} 件目を読み取りました`;
-
-      navigator.vibrate?.(200);
-    }
-
-    const html5QrCodeScanner =
-      new Html5QrcodeScanner(
-        "reader",
-        {
-          fps: 10,
-          qrbox: 220,
-          aspectRatio: 1
-        },
-        false
-      );
-
-    html5QrCodeScanner.render(
-      onScanSuccess
-    );
-
-    function resetApp() {
-
-      location.reload();
-    }
-
-  </script>
-
-</body>
-</html>
+</style>
