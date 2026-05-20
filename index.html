@@ -258,6 +258,7 @@
     let scanned = [];
     let canScan = false;
     let html5QrCodeScanner = null;
+    let stopped = false;
 
     const list =
       document.getElementById("list");
@@ -324,38 +325,35 @@
 
         list.appendChild(li);
       });
+    }
 
-      if (scanned.length === 4) {
+    function showSuccess() {
 
-        const allSame =
-          scanned.every(v => v === scanned[0]);
+      result.textContent =
+        "✅ 一致";
 
-        if (allSame) {
+      result.className =
+        "success";
 
-          result.textContent =
-            "✅ 一致";
+      document.body.style.background =
+        "#dff6dd";
+    }
 
-          result.className =
-            "success";
+    function showError() {
 
-          document.body.style.background =
-            "#dff6dd";
+      result.textContent =
+        "❌ 不一致";
 
-        } else {
+      result.className =
+        "error";
 
-          result.textContent =
-            "❌ 不一致";
-
-          result.className =
-            "error";
-
-          document.body.style.background =
-            "#ffddee";
-        }
-      }
+      document.body.style.background =
+        "#ffddee";
     }
 
     function enableScan() {
+
+      if (stopped) return;
 
       if (scanned.length >= 4) {
 
@@ -374,7 +372,30 @@
 
       if (!canScan) return;
 
+      if (stopped) return;
+
       canScan = false;
+
+      if (scanned.length > 0) {
+
+        if (decodedText !== scanned[0]) {
+
+          scanned.push(decodedText);
+
+          updateUI();
+
+          playBeep();
+
+          showError();
+
+          status.textContent =
+            "不一致のため停止しました";
+
+          stopped = true;
+
+          return;
+        }
+      }
 
       scanned.push(decodedText);
 
@@ -386,6 +407,16 @@
         `QRコード ${scanned.length} 件目を読み取りました`;
 
       navigator.vibrate?.(200);
+
+      if (scanned.length === 4) {
+
+        showSuccess();
+
+        status.textContent =
+          "4件一致しました";
+
+        stopped = true;
+      }
     }
 
     function startCamera() {
@@ -413,6 +444,8 @@
       scanned = [];
 
       canScan = false;
+
+      stopped = false;
 
       result.textContent = "";
 
