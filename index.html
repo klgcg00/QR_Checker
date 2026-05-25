@@ -383,51 +383,41 @@
 
       canScan = false;
 
-      if (scanned.length > 0) {
-
-        if (decodedText !== scanned[0]) {
-
-          scanned.push(decodedText);
-
-          updateUI();
-
-          playBeep();
-
-          showError();
-
-          status.textContent =
-            "不一致のため停止しました";
-
-          stopped = true;
-
-          if (html5QrCodeScanner) {
-
-            try {
-              await html5QrCodeScanner.clear();
-            } catch (e) {}
-          }
-
-          return;
-        }
-      }
-
       scanned.push(decodedText);
 
       updateUI();
 
       playBeep();
 
+      navigator.vibrate?.(200);
+
       status.textContent =
         `QRコード ${scanned.length} 件目を読み取りました`;
 
-      navigator.vibrate?.(200);
-
       if (scanned.length === 4) {
 
-        showSuccess();
+        const firstCode =
+          scanned[0];
 
-        status.textContent =
-          "4件一致しました";
+        const allMatch =
+          scanned.every(
+            code => code === firstCode
+          );
+
+        if (allMatch) {
+
+          showSuccess();
+
+          status.textContent =
+            "4件一致しました";
+
+        } else {
+
+          showError();
+
+          status.textContent =
+            "4件中に不一致があります";
+        }
 
         stopped = true;
 
