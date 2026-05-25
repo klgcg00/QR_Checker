@@ -1,3 +1,6 @@
+# QR + OCR グループ化アプリ（完全版）
+
+```html
 <!DOCTYPE html>
 <html lang="ja">
 
@@ -17,9 +20,11 @@
     name="apple-mobile-web-app-status-bar-style"
     content="black-translucent">
 
-  <title>QRコード照合アプリ</title>
+  <title>QR + OCR照合アプリ</title>
 
   <script src="https://unpkg.com/html5-qrcode"></script>
+
+  <script src="https://unpkg.com/tesseract.js@5/dist/tesseract.min.js"></script>
 
   <style>
 
@@ -78,7 +83,7 @@
 
     #result {
 
-      font-size: 20px;
+      font-size: 18px;
 
       font-weight: bold;
 
@@ -154,7 +159,7 @@
     #reader {
 
       width: 100%;
-      max-width: 280px;
+      max-width: 300px;
 
       margin: 0 auto;
 
@@ -191,15 +196,22 @@
 
       margin-bottom: 6px;
 
-      padding: 8px;
+      padding: 10px;
 
-      border-radius: 8px;
+      border-radius: 10px;
 
       font-size: 12px;
 
       word-break: break-all;
 
       text-align: left;
+
+      border: 2px solid rgba(0,0,0,0.08);
+    }
+
+    .label {
+      font-weight: bold;
+      font-size: 13px;
     }
 
   </style>
@@ -232,11 +244,11 @@
 
     </div>
 
-    <h1>QRコード照合</h1>
+    <h1>QR + OCR照合</h1>
 
     <p>
-      QRコードをカメラに映してから<br>
-      「読み取る」を押してください
+      QRコードを読み取った後に<br>
+      印字文字を自動OCRします
     </p>
 
     <h2 id="count">
@@ -279,7 +291,7 @@
     const status =
       document.getElementById("status");
 
-    function playBeep() {
+    function playBeep(freq = 1000) {
 
       const audioContext =
         new (
@@ -301,7 +313,7 @@
 
       oscillator.type = "sine";
 
-      oscillator.frequency.value = 1000;
+      oscillator.frequency.value = freq;
 
       oscillator.start();
 
@@ -315,21 +327,103 @@
       );
     }
 
-    function groupCodes() {
+    function cleanOCR(text) {
+
+      return text
+        .toUpperCase()
+        .replace(/[^A-Z0-9]/g, "")
+        .trim();
+    }
+
+    async function runOCR() {
+
+      status.textContent =
+        "OCR解析中...";
+
+      const video =
+        document.querySelector("video");
+
+      if (!video) {
+        return "";
+      }
+
+      const canvas =
+        document.createElement("canvas");
+
+      const ctx =
+        canvas.getContext("2d");
+
+      canvas.width = video.videoWidth;
+
+      canvas.height = video.videoHeight;
+
+      ctx.drawImage(
+        video,
+        0,
+        0,
+        canvas.width,
+        canvas.height
+      );
+
+      const cropX =
+        canvas.width * 0.15;
+
+      const cropY =
+        canvas.height * 0.60;
+
+      const cropWidth =
+        canvas.width * 0.7;
+
+      const cropHeight =
+        canvas.height * 0.2;
+
+      const cropCanvas =
+        document.createElement("canvas");
+
+      cropCanvas.width = cropWidth;
+
+      cropCanvas.height = cropHeight;
+
+      const cropCtx =
+        cropCanvas.getContext("2d");
+
+      cropCtx.drawImage(
+        canvas,
+        cropX,
+        cropY,
+        cropWidth,
+        cropHeight,
+        0,
+        0,
+        cropWidth,
+        cropHeight
+      );
+
+      const ocrResult =
+        await Tesseract.recognize(
+          cropCanvas,
+          "eng"
+        );
+
+      return cleanOCR(
+        ocrResult.data.text
+      );
+    }
+
+    function buildGroups() {
 
       const groups = {};
 
-      scanned.forEach(code => {
+      scanned.forEach(item => {
 
-        const normalized =
-          code.trim();
+        const key =
+          `${item.qr}__${item.ocr}`;
 
-        if (!groups[normalized]) {
-
-          groups[normalized] = [];
+        if (!groups[key]) {
+          groups[key] = [];
         }
 
-        groups[normalized].push(code);
+        groups[key].push(item);
       });
 
       return groups;
@@ -343,7 +437,7 @@
       list.innerHTML = "";
 
       const groups =
-        groupCodes();
+        buildGroups();
 
       const colors = [
         "#dff6dd",
@@ -359,37 +453,42 @@
         .sort((a, b) =>
           b[1].length - a[1].length
         )
-        .forEach(
-          ([key, values]) => {
+        .forEach(([key, values]) => {
 
-            const color =
-              values.length === 1
-                ? "#ffcccc"
-                : colors[groupNo % colors.length];
+          const color =
+            values.length === 1
+              ? "#ffcccc"
+              : colors[groupNo % colors.length];
 
-            values.forEach((code) => {
+          values.forEach((item, index) => {
 
-              const li =
-                document.createElement("li");
+            const li =
+              document.createElement("li");
 
-              li.style.background =
-                color;
+            li.style.background = color;
 
-              li.innerHTML = `
-                <strong>
-                  グループ${groupNo + 1}
-                </strong>
+            li.innerHTML = `
+              <div class="label">
+                グループ${groupNo + 1}
                 （${values.length}件一致）
-                <br><br>
-                ${code}
-              `;
+              </div>
 
-              list.appendChild(li);
-            });
+              <br>
 
-            groupNo++;
-          }
-        );
+              <strong>QR:</strong><br>
+              ${item.qr}
+
+              <br><br>
+
+              <strong>OCR:</strong><br>
+              ${item.ocr || "読取失敗"}
+            `;
+
+            list.appendChild(li);
+          });
+
+          groupNo++;
+        });
     }
 
     function enableScan() {
@@ -406,10 +505,10 @@
       canScan = true;
 
       status.textContent =
-        "読み取り待機中...";
+        "QR読み取り待機中...";
     }
 
-    function onScanSuccess(decodedText) {
+    async function onScanSuccess(decodedText) {
 
       if (!canScan) return;
 
@@ -435,21 +534,39 @@
 
       canScan = false;
 
-      scanned.push(decodedText);
-
-      updateUI();
-
-      playBeep();
+      playBeep(1200);
 
       navigator.vibrate?.(200);
 
       status.textContent =
-        `${scanned.length} 件読み取り`;
+        "QR読取完了 → OCR解析中";
+
+      let ocrText = "";
+
+      try {
+
+        ocrText =
+          await runOCR();
+
+      } catch (e) {
+
+        console.error(e);
+      }
+
+      scanned.push({
+        qr: decodedText,
+        ocr: ocrText
+      });
+
+      updateUI();
+
+      status.textContent =
+        `${scanned.length} 件読み取り完了`;
 
       if (scanned.length === 4) {
 
         const groups =
-          Object.keys(groupCodes()).length;
+          Object.keys(buildGroups()).length;
 
         result.textContent =
           `${groups} グループ検出`;
@@ -468,6 +585,17 @@
           "4件読み取り完了";
 
         stopped = true;
+
+      } else {
+
+        setTimeout(() => {
+
+          canScan = true;
+
+          status.textContent =
+            "次を読み取り可能";
+
+        }, 800);
       }
     }
 
@@ -481,7 +609,12 @@
           {
             fps: 10,
             qrbox: 220,
-            aspectRatio: 1
+            aspectRatio: 1,
+            videoConstraints: {
+              facingMode: {
+                ideal: "environment"
+              }
+            }
           },
           false
         );
@@ -535,3 +668,15 @@
 </body>
 
 </html>
+```
+
+## 仕様
+
+* QR読取後に自動OCR
+* OCRは画面下部付近を英数字抽出
+* QR + OCR の組み合わせでグループ化
+* 同一グループを色分け
+* 単独データは赤表示
+* 4件読取で自動停止
+* OCR失敗時も継続
+* スマホ向けUI
