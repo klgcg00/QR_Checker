@@ -189,8 +189,6 @@
 
     li {
 
-      background: rgba(255,255,255,0.9);
-
       margin-bottom: 4px;
 
       padding: 6px;
@@ -200,6 +198,20 @@
       font-size: 12px;
 
       word-break: break-all;
+
+      color: #000;
+    }
+
+    .match {
+
+      background: #dff6dd;
+      border: 2px solid #66bb66;
+    }
+
+    .mismatch {
+
+      background: #ffddee;
+      border: 2px solid #ff6699;
     }
 
   </style>
@@ -320,6 +332,9 @@
 
       list.innerHTML = "";
 
+      const firstCode =
+        scanned[0];
+
       scanned.forEach((code, index) => {
 
         const li =
@@ -327,6 +342,18 @@
 
         li.textContent =
           `QRコード ${index + 1}\n${code}`;
+
+        if (
+          index === 0 ||
+          code === firstCode
+        ) {
+
+          li.classList.add("match");
+
+        } else {
+
+          li.classList.add("mismatch");
+        }
 
         list.appendChild(li);
       });
