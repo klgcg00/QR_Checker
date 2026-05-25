@@ -536,11 +536,32 @@
       navigator.vibrate?.(200);
 
       status.textContent =
-        "QR読取完了 → OCR解析中";
+        "QR読取完了";
+
+      // QR読取後に一旦停止
+      try {
+
+        if (html5QrCodeScanner) {
+
+          await html5QrCodeScanner.pause(true);
+        }
+
+      } catch (e) {}
+
+      status.textContent =
+        "印字文字をカメラ中央へ";
+
+      // OCR前に少し待つ
+      await new Promise(resolve =>
+        setTimeout(resolve, 1200)
+      );
 
       let ocrText = "";
 
       try {
+
+        status.textContent =
+          "OCR解析中...";
 
         ocrText =
           await runOCR();
