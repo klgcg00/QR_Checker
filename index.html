@@ -184,22 +184,22 @@
 
       flex: 1;
 
-      overflow: hidden;
+      overflow-y: auto;
     }
 
     li {
 
-      background: rgba(255,255,255,0.9);
+      margin-bottom: 6px;
 
-      margin-bottom: 4px;
-
-      padding: 6px;
+      padding: 8px;
 
       border-radius: 8px;
 
       font-size: 12px;
 
       word-break: break-all;
+
+      text-align: left;
     }
 
   </style>
@@ -256,9 +256,16 @@
   <script>
 
     let scanned = [];
+
     let canScan = false;
+
     let html5QrCodeScanner = null;
+
     let stopped = false;
+
+    let lastScanned = "";
+
+    let lastScanTime = 0;
 
     const list =
       document.getElementById("list");
@@ -308,6 +315,26 @@
       );
     }
 
+    function groupCodes() {
+
+      const groups = {};
+
+      scanned.forEach(code => {
+
+        const normalized =
+          code.trim();
+
+        if (!groups[normalized]) {
+
+          groups[normalized] = [];
+        }
+
+        groups[normalized].push(code);
+      });
+
+      return groups;
+    }
+
     function updateUI() {
 
       count.textContent =
@@ -315,40 +342,54 @@
 
       list.innerHTML = "";
 
-      scanned.forEach((code, index) => {
+      const groups =
+        groupCodes();
 
-        const li =
-          document.createElement("li");
+      const colors = [
+        "#dff6dd",
+        "#ddeeff",
+        "#fff4cc",
+        "#ffddee",
+        "#eeeeee"
+      ];
 
-        li.textContent =
-          `QRコード ${index + 1}\n${code}`;
+      let groupNo = 0;
 
-        list.appendChild(li);
-      });
-    }
+      Object.entries(groups)
+        .sort((a, b) =>
+          b[1].length - a[1].length
+        )
+        .forEach(
+          ([key, values]) => {
 
-    function showSuccess() {
+            const color =
+              values.length === 1
+                ? "#ffcccc"
+                : colors[groupNo % colors.length];
 
-      result.textContent =
-        "✅ 一致";
+            values.forEach((code) => {
 
-      result.className =
-        "success";
+              const li =
+                document.createElement("li");
 
-      document.body.style.background =
-        "#dff6dd";
-    }
+              li.style.background =
+                color;
 
-    function showError() {
+              li.innerHTML = `
+                <strong>
+                  グループ${groupNo + 1}
+                </strong>
+                （${values.length}件一致）
+                <br><br>
+                ${code}
+              `;
 
-      result.textContent =
-        "❌ 不一致";
+              list.appendChild(li);
+            });
 
-      result.className =
-        "error";
-
-      document.body.style.background =
-        "#ffddee";
+            groupNo++;
+          }
+        );
     }
 
     function enableScan() {
@@ -374,28 +415,25 @@
 
       if (stopped) return;
 
-      canScan = false;
+      decodedText =
+        decodedText.trim();
 
-      if (scanned.length > 0) {
+      const now = Date.now();
 
-        if (decodedText !== scanned[0]) {
-
-          scanned.push(decodedText);
-
-          updateUI();
-
-          playBeep();
-
-          showError();
-
-          status.textContent =
-            "不一致のため停止しました";
-
-          stopped = true;
-
-          return;
-        }
+      if (
+        decodedText === lastScanned &&
+        now - lastScanTime < 1500
+      ) {
+        return;
       }
+
+      lastScanned =
+        decodedText;
+
+      lastScanTime =
+        now;
+
+      canScan = false;
 
       scanned.push(decodedText);
 
@@ -403,17 +441,31 @@
 
       playBeep();
 
-      status.textContent =
-        `QRコード ${scanned.length} 件目を読み取りました`;
-
       navigator.vibrate?.(200);
+
+      status.textContent =
+        `${scanned.length} 件読み取り`;
 
       if (scanned.length === 4) {
 
-        showSuccess();
+        const groups =
+          Object.keys(groupCodes()).length;
+
+        result.textContent =
+          `${groups} グループ検出`;
+
+        result.className =
+          groups === 1
+            ? "success"
+            : "error";
+
+        document.body.style.background =
+          groups === 1
+            ? "#dff6dd"
+            : "#fff0f0";
 
         status.textContent =
-          "4件一致しました";
+          "4件読み取り完了";
 
         stopped = true;
       }
@@ -447,6 +499,10 @@
 
       stopped = false;
 
+      lastScanned = "";
+
+      lastScanTime = 0;
+
       result.textContent = "";
 
       result.className = "";
@@ -463,7 +519,9 @@
       if (html5QrCodeScanner) {
 
         try {
+
           await html5QrCodeScanner.clear();
+
         } catch (e) {}
       }
 
