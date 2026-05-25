@@ -184,7 +184,7 @@
 
       flex: 1;
 
-      overflow: hidden;
+      overflow: auto;
     }
 
     li {
@@ -260,6 +260,8 @@
     let html5QrCodeScanner = null;
     let stopped = false;
 
+    let audioContext = null;
+
     const list =
       document.getElementById("list");
 
@@ -274,11 +276,14 @@
 
     function playBeep() {
 
-      const audioContext =
-        new (
-          window.AudioContext ||
-          window.webkitAudioContext
-        )();
+      if (!audioContext) {
+
+        audioContext =
+          new (
+            window.AudioContext ||
+            window.webkitAudioContext
+          )();
+      }
 
       const oscillator =
         audioContext.createOscillator();
@@ -355,6 +360,8 @@
 
       if (stopped) return;
 
+      if (canScan) return;
+
       if (scanned.length >= 4) {
 
         alert("4件読み取り済みです");
@@ -368,7 +375,7 @@
         "読み取り待機中...";
     }
 
-    function onScanSuccess(decodedText) {
+    async function onScanSuccess(decodedText) {
 
       if (!canScan) return;
 
@@ -393,6 +400,13 @@
 
           stopped = true;
 
+          if (html5QrCodeScanner) {
+
+            try {
+              await html5QrCodeScanner.clear();
+            } catch (e) {}
+          }
+
           return;
         }
       }
@@ -416,6 +430,13 @@
           "4件一致しました";
 
         stopped = true;
+
+        if (html5QrCodeScanner) {
+
+          try {
+            await html5QrCodeScanner.clear();
+          } catch (e) {}
+        }
       }
     }
 
