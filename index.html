@@ -383,7 +383,7 @@
     function loadHistory() {
 
       const history = JSON.parse(
-        localStorage.getItem(STORAGE_KEY) || "[]"
+        sessionStorage.getItem(STORAGE_KEY) || "[]"
       );
 
       totalCount =
@@ -533,7 +533,7 @@
     function saveHistory(resultValue) {
 
       const history = JSON.parse(
-        localStorage.getItem(STORAGE_KEY) || "[]"
+        sessionStorage.getItem(STORAGE_KEY) || "[]"
       );
 
       const record = {
@@ -557,7 +557,7 @@
 
       history.push(record);
 
-      localStorage.setItem(
+      sessionStorage.setItem(
         STORAGE_KEY,
         JSON.stringify(history)
       );
@@ -660,7 +660,7 @@
     function exportCSV() {
 
       const history = JSON.parse(
-        localStorage.getItem(STORAGE_KEY) || "[]"
+        sessionStorage.getItem(STORAGE_KEY) || "[]"
       );
 
       if (history.length === 0) {
@@ -734,7 +734,7 @@
 
       if (!ok) return;
 
-      localStorage.removeItem(
+      sessionStorage.removeItem(
         STORAGE_KEY
       );
 
