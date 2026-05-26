@@ -128,6 +128,17 @@
       font-size: 14px;
     }
 
+    .csv-btn {
+
+      background: #009688;
+
+      color: white;
+
+      padding: 10px 14px;
+
+      font-size: 14px;
+    }
+
     h1 {
 
       margin: 2px 0;
@@ -187,6 +198,20 @@
       font-size: 14px;
 
       line-height: 1.7;
+    }
+
+    .button-row {
+
+      display: flex;
+
+      gap: 8px;
+
+      margin-top: 8px;
+    }
+
+    .button-row button {
+
+      flex: 1;
     }
 
     ul {
@@ -279,19 +304,39 @@
     <div id="summary">
 
       <div>
-        4件読取総数：
+        Total：
         <span id="totalCount">0</span>
       </div>
 
       <div>
-        一致総数：
+        OK：
         <span id="successCount">0</span>
       </div>
 
       <div>
-        不一致総数：
+        NG：
         <span id="errorCount">0</span>
       </div>
+
+    </div>
+
+    <div class="button-row">
+
+      <button
+        class="csv-btn"
+        onclick="exportCSV()">
+
+        CSV保存
+
+      </button>
+
+      <button
+        class="reset-btn"
+        onclick="clearHistory()">
+
+        履歴削除
+
+      </button>
 
     </div>
 
@@ -311,6 +356,8 @@
     let totalCount = 0;
     let successCount = 0;
     let errorCount = 0;
+
+    const STORAGE_KEY = "qrHistory";
 
     const list =
       document.getElementById("list");
@@ -332,6 +379,28 @@
 
     const errorCountEl =
       document.getElementById("errorCount");
+
+    function loadHistory() {
+
+      const history = JSON.parse(
+        localStorage.getItem(STORAGE_KEY) || "[]"
+      );
+
+      totalCount =
+        history.length;
+
+      successCount =
+        history.filter(
+          item => item.result === "OK"
+        ).length;
+
+      errorCount =
+        history.filter(
+          item => item.result === "NG"
+        ).length;
+
+      updateSummary();
+    }
 
     function updateSummary() {
 
@@ -400,7 +469,7 @@
           document.createElement("li");
 
         li.textContent =
-          `QRコード ${index + 1}\n${code}`;
+          `DATA ${index + 1}\n${code}`;
 
         if (
           index === 0 ||
@@ -421,7 +490,7 @@
     function showSuccess() {
 
       result.textContent =
-        "✅ 一致";
+        "OK";
 
       result.className =
         "success";
@@ -433,7 +502,7 @@
     function showError() {
 
       result.textContent =
-        "❌ 不一致";
+        "NG";
 
       result.className =
         "error";
@@ -461,6 +530,72 @@
         "読み取り待機中...";
     }
 
+    function saveHistory(resultValue) {
+
+      const history = JSON.parse(
+        localStorage.getItem(STORAGE_KEY) || "[]"
+      );
+
+      const record = {
+
+        count:
+          history.length + 1,
+
+        timestamp:
+          formatDate(new Date()),
+
+        result:
+          resultValue,
+
+        data: [
+          scanned[0] || "",
+          scanned[1] || "",
+          scanned[2] || "",
+          scanned[3] || ""
+        ]
+      };
+
+      history.push(record);
+
+      localStorage.setItem(
+        STORAGE_KEY,
+        JSON.stringify(history)
+      );
+    }
+
+    function formatDate(date) {
+
+      const y =
+        date.getFullYear();
+
+      const m =
+        String(
+          date.getMonth() + 1
+        ).padStart(2, "0");
+
+      const d =
+        String(
+          date.getDate()
+        ).padStart(2, "0");
+
+      const h =
+        String(
+          date.getHours()
+        ).padStart(2, "0");
+
+      const mi =
+        String(
+          date.getMinutes()
+        ).padStart(2, "0");
+
+      const s =
+        String(
+          date.getSeconds()
+        ).padStart(2, "0");
+
+      return `${y}-${m}-${d} ${h}:${mi}:${s}`;
+    }
+
     async function onScanSuccess(decodedText) {
 
       if (!canScan) return;
@@ -478,11 +613,9 @@
       navigator.vibrate?.(200);
 
       status.textContent =
-        `QRコード ${scanned.length} 件目を読み取りました`;
+        `DATA ${scanned.length} 読み取り完了`;
 
       if (scanned.length === 4) {
-
-        totalCount++;
 
         const firstCode =
           scanned[0];
@@ -494,24 +627,24 @@
 
         if (allMatch) {
 
-          successCount++;
-
           showSuccess();
 
           status.textContent =
-            "4件一致しました";
+            "OK";
+
+          saveHistory("OK");
 
         } else {
-
-          errorCount++;
 
           showError();
 
           status.textContent =
-            "4件中に不一致があります";
+            "NG";
+
+          saveHistory("NG");
         }
 
-        updateSummary();
+        loadHistory();
 
         stopped = true;
 
@@ -522,6 +655,96 @@
           } catch (e) {}
         }
       }
+    }
+
+    function exportCSV() {
+
+      const history = JSON.parse(
+        localStorage.getItem(STORAGE_KEY) || "[]"
+      );
+
+      if (history.length === 0) {
+
+        alert("保存データがありません");
+
+        return;
+      }
+
+      let csv =
+        "count,timestamp,result,data1,data2,data3,data4\n";
+
+      history.forEach(item => {
+
+        csv += [
+
+          item.count,
+
+          item.timestamp,
+
+          item.result,
+
+          item.data[0],
+
+          item.data[1],
+
+          item.data[2],
+
+          item.data[3]
+
+        ].join(",") + "\n";
+      });
+
+      const bom =
+        "\uFEFF";
+
+      const blob =
+        new Blob(
+          [bom + csv],
+          {
+            type:
+              "text/csv;charset=utf-8;"
+          }
+        );
+
+      const link =
+        document.createElement("a");
+
+      const now =
+        new Date();
+
+      const fileName =
+        `qr_history_${formatDate(now)
+          .replace(/[: ]/g, "_")}.csv`;
+
+      link.href =
+        URL.createObjectURL(blob);
+
+      link.download =
+        fileName;
+
+      link.click();
+    }
+
+    function clearHistory() {
+
+      const ok =
+        confirm(
+          "保存履歴を削除しますか？"
+        );
+
+      if (!ok) return;
+
+      localStorage.removeItem(
+        STORAGE_KEY
+      );
+
+      totalCount = 0;
+      successCount = 0;
+      errorCount = 0;
+
+      updateSummary();
+
+      alert("履歴を削除しました");
     }
 
     function startCamera() {
@@ -575,17 +798,7 @@
       startCamera();
     }
 
-    window.addEventListener(
-      "beforeunload",
-      () => {
-
-        totalCount = 0;
-        successCount = 0;
-        errorCount = 0;
-      }
-    );
-
-    updateSummary();
+    loadHistory();
 
     startCamera();
 
